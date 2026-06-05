@@ -254,7 +254,7 @@
       padding: 10px 14px 8px; border-bottom: 1px solid var(--bordure);
       display: flex; align-items: center; gap: 6px;
     }
-    #carte { height: 260px; width: 100%; }
+    #carte { height: 400px; width: 100%; }
 
     /* TOP AFFAIRES */
     .top-widget { background: var(--blanc); border-radius: var(--r-lg); border: 1.5px solid var(--bordure); overflow: hidden; }
@@ -381,7 +381,7 @@
     @media (max-width: 900px) {
       .main-layout { grid-template-columns: 1fr; }
       .sidebar { order: -1; }
-      #carte { height: 220px; }
+      #carte { height: 300px; }
       .hero-title { font-size: 1.7rem; }
       .hero::before { font-size: 5rem; }
       .header-right .btn-alerte { display: none; }
@@ -401,10 +401,7 @@
     <a class="logo" href="/">
       <em>France</em>&nbsp;Liquidations
     </a>
-    <div class="header-right">
-      <div class="live-badge"><div class="live-dot"></div>Données live</div>
-      <button class="btn-alerte" onclick="ouvrirAlerte()">🔔 Alertes</button>
-    </div>
+    <div class="header-right"></div>
   </div>
 </header>
 
@@ -638,30 +635,7 @@
   </div>
 </div>
 
-<!-- ===== MODAL ALERTE EMAIL ===== -->
-<div class="alerte-modal" id="modal-alerte" onclick="fermerAlerte(event)">
-  <div class="alerte-box" onclick="event.stopPropagation()">
-    <h3>🔔 Recevoir les alertes</h3>
-    <p>Soyez notifié dès qu'une nouvelle liquidation apparaît dans votre région. Gratuit, sans spam.</p>
-    <label>Votre email</label>
-    <input type="email" id="a-email" placeholder="vous@exemple.fr" />
-    <label>Département</label>
-    <select id="a-dept">
-      <option value="">Tous les départements</option>
-    </select>
-    <label>Type d'alerte</label>
-    <select id="a-type">
-      <option value="">Toutes les procédures</option>
-      <option value="Liquidation">Liquidations judiciaires seulement</option>
-    </select>
-    <div class="alerte-btns">
-      <button class="btn-cancel" onclick="fermerAlerte()">Annuler</button>
-      <button class="btn-sub" onclick="inscrireAlerte()">M'abonner gratuitement</button>
-    </div>
-  </div>
-</div>
-
-<!-- ===== MODAL SIGNALEMENT ===== -->
+<!-- MODAL SIGNALEMENT -->
 <div class="alerte-modal" id="modal-signal" onclick="fermerSignal(event)">
   <div class="alerte-box" onclick="event.stopPropagation()">
     <h3>📍 Signaler une liquidation</h3>
@@ -712,18 +686,18 @@ const COORDS_DEPT = {
 // DONNÉES DE DÉMONSTRATION (remplacées par Supabase en prod)
 // ============================================================
 const DEMO_DATA = [
-  {id:1,nom:"Galerie Mode & Style",ville:"Paris",departement:"75",type_procedure:"Liquidation judiciaire",date_parution:"2025-04-12",activite:"Vente de vêtements femme",score_affaire:5,url_bodacc:"https://www.bodacc.fr"},
-  {id:2,nom:"Électro Plus Lyon",ville:"Lyon",departement:"69",type_procedure:"Liquidation judiciaire",date_parution:"2025-04-08",activite:"Électroménager et high-tech",score_affaire:5,url_bodacc:"https://www.bodacc.fr"},
-  {id:3,nom:"Meubles du Sud",ville:"Marseille",departement:"13",type_procedure:"Redressement judiciaire",date_parution:"2025-04-05",activite:"Vente de meubles et literie",score_affaire:4,url_bodacc:"https://www.bodacc.fr"},
-  {id:4,nom:"Sport & Co Toulouse",ville:"Toulouse",departement:"31",type_procedure:"Liquidation judiciaire",date_parution:"2025-04-01",activite:"Articles de sport et loisirs",score_affaire:5,url_bodacc:"https://www.bodacc.fr"},
-  {id:5,nom:"Librairie du Centre",ville:"Bordeaux",departement:"33",type_procedure:"Sauvegarde",date_parution:"2025-03-28",activite:"Librairie, papeterie, cadeaux",score_affaire:3,url_bodacc:"https://www.bodacc.fr"},
-  {id:6,nom:"Chaussures Express",ville:"Lille",departement:"59",type_procedure:"Liquidation judiciaire",date_parution:"2025-03-25",activite:"Vente de chaussures",score_affaire:5,url_bodacc:"https://www.bodacc.fr"},
-  {id:7,nom:"Déco & Maison Nantes",ville:"Nantes",departement:"44",type_procedure:"Redressement judiciaire",date_parution:"2025-03-20",activite:"Décoration intérieure",score_affaire:4,url_bodacc:"https://www.bodacc.fr"},
-  {id:8,nom:"Bijouterie Lumière",ville:"Nice",departement:"06",type_procedure:"Liquidation judiciaire",date_parution:"2025-03-18",activite:"Bijouterie, horlogerie",score_affaire:5,url_bodacc:"https://www.bodacc.fr"},
-  {id:9,nom:"Informatique & Web",ville:"Strasbourg",departement:"67",type_procedure:"Sauvegarde",date_parution:"2025-03-15",activite:"Matériel informatique",score_affaire:4,url_bodacc:"https://www.bodacc.fr"},
-  {id:10,nom:"Parfums et Beauté",ville:"Montpellier",departement:"34",type_procedure:"Liquidation judiciaire",date_parution:"2025-03-10",activite:"Parfumerie et cosmétiques",score_affaire:5,url_bodacc:"https://www.bodacc.fr"},
-  {id:11,nom:"Le Comptoir Textile",ville:"Rennes",departement:"35",type_procedure:"Redressement judiciaire",date_parution:"2025-03-08",activite:"Vêtements homme et femme",score_affaire:4,url_bodacc:"https://www.bodacc.fr"},
-  {id:12,nom:"Jouets & Jeux Reims",ville:"Reims",departement:"51",type_procedure:"Liquidation judiciaire",date_parution:"2025-03-05",activite:"Jouets et jeux éducatifs",score_affaire:5,url_bodacc:"https://www.bodacc.fr"},
+  {id:1,nom:"Galerie Mode & Style",ville:"Paris",adresse:"12 Rue de Rivoli, 75001 Paris",departement:"75",type_procedure:"Liquidation judiciaire",date_parution:"2025-04-12",activite:"Vente de vêtements femme",score_affaire:5,bodacc_id:"P202500001"},
+  {id:2,nom:"Électro Plus Lyon",ville:"Lyon",adresse:"45 Rue de la République, 69002 Lyon",departement:"69",type_procedure:"Liquidation judiciaire",date_parution:"2025-04-08",activite:"Électroménager et high-tech",score_affaire:5,bodacc_id:"P202500002"},
+  {id:3,nom:"Meubles du Sud",ville:"Marseille",adresse:"78 Avenue du Prado, 13008 Marseille",departement:"13",type_procedure:"Redressement judiciaire",date_parution:"2025-04-05",activite:"Vente de meubles et literie",score_affaire:4,bodacc_id:"P202500003"},
+  {id:4,nom:"Sport & Co Toulouse",ville:"Toulouse",adresse:"23 Allées Jean Jaurès, 31000 Toulouse",departement:"31",type_procedure:"Liquidation judiciaire",date_parution:"2025-04-01",activite:"Articles de sport et loisirs",score_affaire:5,bodacc_id:"P202500004"},
+  {id:5,nom:"Librairie du Centre",ville:"Bordeaux",adresse:"5 Place de la Victoire, 33000 Bordeaux",departement:"33",type_procedure:"Sauvegarde",date_parution:"2025-03-28",activite:"Librairie, papeterie, cadeaux",score_affaire:null,bodacc_id:"P202500005"},
+  {id:6,nom:"Chaussures Express",ville:"Lille",adresse:"14 Rue Nationale, 59000 Lille",departement:"59",type_procedure:"Liquidation judiciaire",date_parution:"2025-03-25",activite:"Vente de chaussures",score_affaire:5,bodacc_id:"P202500006"},
+  {id:7,nom:"Déco & Maison Nantes",ville:"Nantes",adresse:"30 Rue du Commerce, 44000 Nantes",departement:"44",type_procedure:"Redressement judiciaire",date_parution:"2025-03-20",activite:"Décoration intérieure",score_affaire:4,bodacc_id:"P202500007"},
+  {id:8,nom:"Bijouterie Lumière",ville:"Nice",adresse:"9 Avenue Jean Médecin, 06000 Nice",departement:"06",type_procedure:"Liquidation judiciaire",date_parution:"2025-03-18",activite:"Bijouterie, horlogerie",score_affaire:5,bodacc_id:"P202500008"},
+  {id:9,nom:"Informatique & Web",ville:"Strasbourg",adresse:"67 Rue du Faubourg National, 67000 Strasbourg",departement:"67",type_procedure:"Sauvegarde",date_parution:"2025-03-15",activite:"Matériel informatique",score_affaire:null,bodacc_id:"P202500009"},
+  {id:10,nom:"Parfums et Beauté",ville:"Montpellier",adresse:"22 Rue de la Loge, 34000 Montpellier",departement:"34",type_procedure:"Liquidation judiciaire",date_parution:"2025-03-10",activite:"Parfumerie et cosmétiques",score_affaire:5,bodacc_id:"P202500010"},
+  {id:11,nom:"Le Comptoir Textile",ville:"Rennes",adresse:"11 Rue d'Orléans, 35000 Rennes",departement:"35",type_procedure:"Redressement judiciaire",date_parution:"2025-03-08",activite:"Vêtements homme et femme",score_affaire:4,bodacc_id:"P202500011"},
+  {id:12,nom:"Jouets & Jeux Reims",ville:"Reims",adresse:"3 Rue de Vesle, 51100 Reims",departement:"51",type_procedure:"Liquidation judiciaire",date_parution:"2025-03-05",activite:"Jouets et jeux éducatifs",score_affaire:null,bodacc_id:"P202500012"},
 ];
 
 let allData = [], filteredData = [], carte, mapMarkers = [];
@@ -832,7 +806,7 @@ function renderCard(r) {
       </div>
       <div class="card-location">
         <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-        ${r.ville}${r.departement ? ' (' + r.departement + ')' : ''}
+        ${r.adresse || r.ville}${r.departement ? ' (' + r.departement + ')' : ''}
       </div>
       <div class="card-activite">${r.activite || '—'}</div>
       <div class="card-footer">
@@ -840,42 +814,56 @@ function renderCard(r) {
         <div class="score-stars">${stars}</div>
       </div>
     </div>
-    <a class="card-cta" href="${r.url_bodacc || '#'}" target="_blank" onclick="event.stopPropagation()">
+    <a class="card-cta" href="${urlBodacc(r.bodacc_id)}" target="_blank" onclick="event.stopPropagation()">
       Voir l'annonce officielle →
     </a>
   </div>`;
 }
 
 function renderStars(score) {
-  score = score || 3;
+  if (!score) return '<span style="font-size:11px;color:var(--gris-c)">Non noté</span>';
   return Array.from({length:5}, (_,i) => `<div class="star ${i<score?'on':'off'}"></div>`).join('');
 }
 
 // ============================================================
-// CARTE LEAFLET
+// CARTE LEAFLET — géolocalisation réelle par adresse
 // ============================================================
-function afficherMarqueurs() {
+async function afficherMarqueurs() {
   mapMarkers.forEach(m => carte.removeLayer(m));
   mapMarkers = [];
 
-  filteredData.forEach(r => {
-    const c = COORDS_DEPT[r.departement];
-    if (!c) return;
-    const lat = c[0] + (Math.random() - .5) * .25;
-    const lng = c[1] + (Math.random() - .5) * .25;
-    const col = r.type_procedure?.includes('Liquidation') ? '#E8190A'
+  // On traite par lots de 3 pour respecter le rate-limit Nominatim (1 req/sec)
+  for (let i = 0; i < filteredData.length; i++) {
+    const r = filteredData[i];
+    const col = r.type_procedure?.includes('Liquidation') ? '#ED2939'
               : r.type_procedure?.includes('Redressement') ? '#F57C00' : '#1B8C4E';
 
+    // Essayer géolocalisation réelle, sinon fallback département
+    let coords = await geocoder(r.adresse, r.ville, r.code_postal);
+    if (!coords) {
+      const c = COORDS_DEPT[r.departement];
+      if (!c) continue;
+      coords = [c[0] + (Math.random()-.5)*.1, c[1] + (Math.random()-.5)*.1];
+    }
+
     const icon = L.divIcon({
-      html: `<div style="width:11px;height:11px;border-radius:50%;background:${col};border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,.35)"></div>`,
-      className:'', iconSize:[11,11], iconAnchor:[5.5,5.5]
+      html: `<div style="width:12px;height:12px;border-radius:50%;background:${col};border:2px solid white;box-shadow:0 2px 5px rgba(0,0,80,.3)"></div>`,
+      className:'', iconSize:[12,12], iconAnchor:[6,6]
     });
 
-    const m = L.marker([lat, lng], {icon}).addTo(carte)
-      .bindPopup(`<b style="font-size:13px">${r.nom}</b><br><span style="font-size:12px;color:#666">📍 ${r.ville} · ${shortType(r.type_procedure)}</span>`);
+    const adresseAffiche = r.adresse || r.ville || '—';
+    const m = L.marker(coords, {icon}).addTo(carte)
+      .bindPopup(`
+        <b style="font-size:13px">${r.nom}</b><br>
+        <span style="font-size:12px;color:#555">📍 ${adresseAffiche}</span><br>
+        <span style="font-size:11px;color:#888">${shortType(r.type_procedure)}</span>
+      `);
     m._id = r.id;
     mapMarkers.push(m);
-  });
+
+    // Pause 300ms entre chaque requête Nominatim
+    if (i < filteredData.length - 1) await new Promise(r => setTimeout(r, 300));
+  }
 }
 
 // ============================================================
@@ -892,7 +880,7 @@ function afficherTop() {
         <div class="top-ville">📍 ${r.ville}</div>
       </div>
       <div class="top-score">
-        <div class="top-stars">${'⭐'.repeat(r.score_affaire||3)}</div>
+        <div class="top-stars">${r.score_affaire ? '⭐'.repeat(r.score_affaire) : '—'}</div>
         <div style="font-size:10px;color:var(--gris-c)">${shortType(r.type_procedure)}</div>
       </div>
     </div>
@@ -909,17 +897,24 @@ function ouvrirDetail(id) {
 
   document.getElementById('d-type').textContent = r.type_procedure || '—';
   document.getElementById('d-nom').textContent = r.nom;
-  document.getElementById('d-loc').innerHTML = `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> ${r.ville}${r.departement ? ' — Département ' + r.departement : ''}`;
-  document.getElementById('d-score').textContent = '⭐'.repeat(r.score_affaire || 3);
-  document.getElementById('d-score-label').textContent = scoreLabel(r.score_affaire);
-  document.getElementById('d-link').href = r.url_bodacc || '#';
+  document.getElementById('d-loc').innerHTML = `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> ${r.adresse || r.ville}${r.departement ? ' — Dép. ' + r.departement : ''}`;
+  document.getElementById('d-score').textContent = r.score_affaire ? '⭐'.repeat(r.score_affaire) : '—';
+  document.getElementById('d-score-label').textContent = r.score_affaire ? scoreLabel(r.score_affaire) : 'Non noté';
+  document.getElementById('d-link').href = urlBodacc(r.bodacc_id);
+  const gmapsUrl = `https://www.google.com/maps/search/${encodeURIComponent((r.adresse || r.ville) + ' France')}`;
   document.getElementById('d-grid').innerHTML = `
     <div class="info-cell"><div class="ilbl">Type de procédure</div><div class="ival">${r.type_procedure||'—'}</div></div>
     <div class="info-cell"><div class="ilbl">Date de parution</div><div class="ival">${fmtDate(r.date_parution)}</div></div>
+    <div class="info-cell" style="grid-column:1/-1"><div class="ilbl">Adresse</div><div class="ival">${r.adresse || '—'}</div></div>
     <div class="info-cell"><div class="ilbl">Ville</div><div class="ival">${r.ville||'—'}</div></div>
     <div class="info-cell"><div class="ilbl">Département</div><div class="ival">${r.departement||'—'}</div></div>
     <div class="info-cell" style="grid-column:1/-1"><div class="ilbl">Activité</div><div class="ival">${r.activite||'—'}</div></div>
-    <div class="info-cell" style="grid-column:1/-1"><div class="ilbl">Source</div><div class="ival">BODACC · Données officielles DILA</div></div>
+    <div class="info-cell" style="grid-column:1/-1">
+      <a href="${gmapsUrl}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;color:var(--bleu);font-size:13px;font-weight:600;text-decoration:none">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        Voir sur Google Maps →
+      </a>
+    </div>
   `;
   document.getElementById('modal-detail').classList.add('show');
 
@@ -930,20 +925,6 @@ function ouvrirDetail(id) {
 
 function fermerDetail(e) {
   if (e.target === document.getElementById('modal-detail')) document.getElementById('modal-detail').classList.remove('show');
-}
-
-// ============================================================
-// MODAL ALERTE EMAIL
-// ============================================================
-function ouvrirAlerte() { document.getElementById('modal-alerte').classList.add('show'); }
-function fermerAlerte(e) {
-  if (!e || e.target === document.getElementById('modal-alerte')) document.getElementById('modal-alerte').classList.remove('show');
-}
-async function inscrireAlerte() {
-  const email = document.getElementById('a-email').value.trim();
-  if (!email || !email.includes('@')) { alert('Merci d\'entrer un email valide.'); return; }
-  alert('✅ Inscription enregistrée ! Vous recevrez les alertes pour votre région.');
-  fermerAlerte();
 }
 
 // ============================================================
@@ -968,9 +949,31 @@ async function envoyerSignal() {
   fermerSignal();
 }
 
-// ============================================================
-// UTILITAIRES
-// ============================================================
+// URL BODACC correcte par ID d'annonce
+function urlBodacc(bodacc_id) {
+  if (!bodacc_id) return 'https://www.bodacc.fr/pages/annonces-commerciales/';
+  return `https://www.bodacc.fr/pages/annonces-commerciales-detail/?q.id=id:${bodacc_id}`;
+}
+
+// Géolocalisation réelle par adresse via Nominatim (OpenStreetMap, gratuit)
+const geocacheMap = {};
+async function geocoder(adresse, ville, cp) {
+  const cle = adresse || (cp + ' ' + ville);
+  if (geocacheMap[cle]) return geocacheMap[cle];
+  try {
+    const q = encodeURIComponent((adresse || '') + ' ' + (cp||'') + ' ' + ville + ' France');
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1&countrycodes=fr`, {
+      headers: { 'Accept-Language': 'fr' }
+    });
+    const data = await res.json();
+    if (data && data[0]) {
+      const coords = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+      geocacheMap[cle] = coords;
+      return coords;
+    }
+  } catch {}
+  return null;
+}
 function badgeCls(t='') {
   if (t.includes('Liquidation')) return 'liq';
   if (t.includes('Redressement')) return 'red';
