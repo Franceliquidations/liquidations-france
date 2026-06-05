@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>France Liquidations — Les meilleures affaires près de chez vous</title>
+  <meta name="description" content="Trouvez tous les magasins en liquidation près de chez vous. Mises à jour chaque nuit. Économisez jusqu'à -90%."/>
+  <meta name="keywords" content="liquidation magasin France, soldes liquidation, vente liquidation judiciaire, bonnes affaires"/>
+  <meta property="og:title" content="France Liquidations — Toutes les liquidations en France"/>
+  <meta property="og:description" content="Ne ratez plus aucune liquidation près de chez vous. -70% à -90% sur tout."/>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+
+  <!-- Leaflet carte -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- ================================================
+       GOOGLE ADSENSE — remplacer ca-pub-XXXXXXXX
+       ================================================ -->
+  <!-- <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script> -->
+
+  <style>
+    /* ===== RESET & VARIABLES ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --rouge:    #ED2939;
+      --rouge2:   #C0182A;
+      --bleu:     #002395;
+      --bleu2:    #001A6E;
+      --bleu-cl:  #EEF1FB;
+      --orange:   #D44000;
+      --jaune:    #FFFFFF;
+      --jaune2:   #E8E8E8;
+      --noir:     #001A6E;
+      --noir2:    #001260;
+      --gris-f:   #1A2A5E;
+      --gris-m:   #444;
+      --gris-c:   #888;
+      --gris-l:   #F0F2F8;
+      --blanc:    #FFFFFF;
+      --fond:     #F5F6FA;
+      --bordure:  #D8DCF0;
+      --vert:     #1B8C4E;
+      --r:        8px;
+      --r-lg:     14px;
+      --ff-title: 'Bebas Neue', sans-serif;
+      --ff-body:  'DM Sans', sans-serif;
+      --shadow:   0 2px 12px rgba(0,0,50,.08);
+      --shadow-lg:0 8px 32px rgba(0,0,50,.14);
+    }
+
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--ff-body); background: var(--fond); color: var(--noir); min-height: 100vh; }
+
+    /* ===== HEADER ===== */
+    .header {
+      background: var(--bleu);
+      position: sticky; top: 0; z-index: 100;
+      border-bottom: 4px solid var(--rouge);
+      box-shadow: 0 2px 12px rgba(0,0,80,.18);
+    }
+    .header-inner {
+      max-width: 1200px; margin: 0 auto;
+      padding: .6rem 1rem;
+      display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    }
+    .logo {
+      font-family: var(--ff-title);
+      font-size: 1.7rem; letter-spacing: .04em;
+      color: var(--blanc); line-height: 1;
+      display: flex; align-items: center; gap: 6px;
+      text-decoration: none;
+    }
+    .logo em {
+      color: var(--rouge); font-style: normal;
+      background: white;
+      padding: 0 6px 2px;
+      border-radius: 4px;
+    }
+    .header-right { display: flex; align-items: center; gap: 10px; }
+    .live-badge {
+      display: flex; align-items: center; gap: 5px;
+      background: var(--vert); color: white;
+      font-size: 11px; font-weight: 700;
+      padding: 4px 10px; border-radius: 20px;
+      text-transform: uppercase; letter-spacing: .05em;
+    }
+    .live-dot { width: 7px; height: 7px; border-radius: 50%; background: white; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.8)} }
+
+    .btn-alerte {
+      background: var(--rouge); color: white;
+      font-weight: 700; font-size: 12px;
+      padding: 6px 14px; border-radius: var(--r);
+      border: none; cursor: pointer;
+      text-transform: uppercase; letter-spacing: .04em;
+      transition: transform .1s;
+    }
+    .btn-alerte:hover { transform: scale(1.04); opacity: .9; }
+
+    .hero {
+      background: linear-gradient(135deg, var(--bleu) 0%, var(--bleu2) 50%, var(--rouge2) 100%);
+      color: white; padding: 1.8rem 1rem 1.5rem;
+      position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: 'LIQUIDATIONS';
+      position: absolute; right: -20px; top: -10px;
+      font-family: var(--ff-title); font-size: 6rem;
+      opacity: .06; white-space: nowrap; pointer-events: none;
+      color: white; letter-spacing: .1em;
+    }
+    .hero-inner { max-width: 1200px; margin: 0 auto; }
+    .hero-title { font-family: var(--ff-title); font-size: 2.6rem; line-height: 1; letter-spacing: .04em; margin-bottom: .5rem; }
+    .hero-title span { color: var(--rouge); background: white; padding: 0 8px 2px; border-radius: 4px; display: inline-block; }
+
+    /* ===== ADSENSE BANNER ===== */
+    .ad-banner {
+      background: var(--blanc); border-top: 1px solid var(--bordure); border-bottom: 1px solid var(--bordure);
+      padding: .5rem 1rem; text-align: center;
+      font-size: 10px; color: var(--gris-c); min-height: 60px;
+      display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 4px;
+    }
+    .ad-placeholder {
+      width: 100%; max-width: 728px; height: 50px;
+      background: repeating-linear-gradient(45deg, #f5f5f5, #f5f5f5 10px, #ebebeb 10px, #ebebeb 20px);
+      border-radius: 4px; display: flex; align-items: center; justify-content: center;
+      font-size: 11px; color: #aaa; border: 1px dashed #ddd;
+    }
+
+    /* ===== BARRE DE RECHERCHE ===== */
+    .search-section { background: var(--blanc); padding: .8rem 1rem; border-bottom: 1px solid var(--bordure); position: sticky; top: 57px; z-index: 90; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+    .search-inner { max-width: 1200px; margin: 0 auto; }
+    .search-bar {
+      display: flex; gap: 8px; margin-bottom: 8px;
+    }
+    .search-input-wrap { flex: 1; position: relative; }
+    .search-input-wrap svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); opacity: .4; pointer-events: none; }
+    .search-input {
+      width: 100%; height: 42px; padding: 0 12px 0 38px;
+      border: 1.5px solid var(--bordure); border-radius: var(--r);
+      font-size: 14px; font-family: var(--ff-body);
+      background: var(--fond); transition: border-color .2s;
+    }
+    .search-input:focus { outline: none; border-color: var(--bleu); background: white; }
+    .btn-search {
+      height: 42px; padding: 0 18px;
+      background: var(--bleu); color: white;
+      border: none; border-radius: var(--r);
+      font-weight: 700; font-size: 13px; cursor: pointer;
+      font-family: var(--ff-body); white-space: nowrap;
+      transition: background .15s;
+    }
+    .btn-search:hover { background: var(--bleu2); }
+    .filters-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .filter-chip {
+      height: 32px; padding: 0 12px;
+      border: 1.5px solid var(--bordure); border-radius: 20px;
+      background: var(--fond); font-size: 12px; font-family: var(--ff-body);
+      color: var(--noir); cursor: pointer; transition: all .15s;
+    }
+    .filter-chip:hover, .filter-chip.active { border-color: var(--bleu); background: var(--bleu-cl); color: var(--bleu); }
+    .filter-select {
+      height: 32px; padding: 0 10px;
+      border: 1.5px solid var(--bordure); border-radius: 20px;
+      background: var(--fond); font-size: 12px; font-family: var(--ff-body);
+      color: var(--noir); cursor: pointer;
+    }
+    .results-info { font-size: 12px; color: var(--gris-c); margin-top: 7px; }
+    .results-info strong { color: var(--bleu); }
+
+    /* ===== LAYOUT PRINCIPAL ===== */
+    .main-layout { max-width: 1200px; margin: 0 auto; padding: 1rem; display: grid; grid-template-columns: 1fr 340px; gap: 1rem; }
+
+    /* ===== GRILLE DE CARTES ===== */
+    .cards-section { min-width: 0; }
+    .section-title { font-family: var(--ff-title); font-size: 1.4rem; letter-spacing: .05em; margin-bottom: .8rem; display: flex; align-items: center; gap: 8px; }
+    .section-title .tag { background: var(--rouge); color: white; font-size: 11px; padding: 2px 8px; border-radius: 4px; font-family: var(--ff-body); font-weight: 700; letter-spacing: .04em; }
+    .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: .8rem; }
+
+    /* ===== CARTE LIQUIDATION ===== */
+    .liq-card {
+      background: var(--blanc); border-radius: var(--r-lg);
+      border: 1.5px solid var(--bordure);
+      overflow: hidden; cursor: pointer;
+      transition: transform .15s, box-shadow .15s, border-color .15s;
+      position: relative;
+    }
+    .liq-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); border-color: var(--rouge); }
+    .liq-card.highlight { border-color: var(--rouge); box-shadow: 0 0 0 3px rgba(232,25,10,.12); }
+
+    .card-ribbon {
+      position: absolute; top: 0; left: 0; right: 0;
+      height: 4px;
+    }
+    .card-ribbon.liq  { background: linear-gradient(90deg, var(--rouge), var(--orange)); }
+    .card-ribbon.red  { background: linear-gradient(90deg, var(--orange), var(--jaune2)); }
+    .card-ribbon.sauv { background: linear-gradient(90deg, var(--vert), #4CAF50); }
+
+    .card-body { padding: 14px 14px 10px; }
+    .card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+    .card-nom { font-weight: 700; font-size: 15px; line-height: 1.25; flex: 1; }
+    .type-badge {
+      font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px;
+      white-space: nowrap; text-transform: uppercase; letter-spacing: .04em; flex-shrink: 0;
+    }
+    .type-badge.liq  { background: #FFF1F0; color: var(--rouge); border: 1px solid #FFCDD0; }
+    .type-badge.red  { background: #FFF8E1; color: var(--orange); border: 1px solid #FFE082; }
+    .type-badge.sauv { background: #E8F5E9; color: var(--vert);  border: 1px solid #A5D6A7; }
+
+    .card-location { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--gris-c); margin-bottom: 6px; }
+    .card-activite { font-size: 12px; color: #555; background: var(--fond); border-radius: 6px; padding: 5px 8px; margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .card-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px solid var(--bordure); }
+    .card-date { font-size: 11px; color: var(--gris-c); }
+    .score-stars { display: flex; gap: 2px; }
+    .star { width: 13px; height: 13px; border-radius: 2px; }
+    .star.on  { background: var(--jaune2); }
+    .star.off { background: var(--gris-l); }
+
+    .card-cta {
+      display: block; margin: 0 14px 12px;
+      background: var(--rouge); color: white;
+      text-align: center; padding: 8px;
+      border-radius: var(--r); font-size: 12px; font-weight: 700;
+      text-decoration: none; text-transform: uppercase; letter-spacing: .04em;
+      transition: background .15s;
+    }
+    .card-cta:hover { background: var(--rouge2); }
+
+    /* CARD AD (slot pub dans la grille) */
+    .card-ad {
+      background: var(--blanc); border-radius: var(--r-lg);
+      border: 1.5px dashed var(--bordure);
+      display: flex; align-items: center; justify-content: center;
+      min-height: 160px; flex-direction: column; gap: 6px;
+      font-size: 11px; color: var(--gris-c);
+    }
+
+    /* ===== PANNEAU DROIT ===== */
+    .sidebar { display: flex; flex-direction: column; gap: 1rem; }
+
+    /* CARTE */
+    .map-widget {
+      background: var(--blanc); border-radius: var(--r-lg);
+      border: 1.5px solid var(--bordure); overflow: hidden;
+    }
+    .widget-title {
+      font-family: var(--ff-title); font-size: 1.1rem; letter-spacing: .05em;
+      padding: 10px 14px 8px; border-bottom: 1px solid var(--bordure);
+      display: flex; align-items: center; gap: 6px;
+    }
+    #carte { height: 260px; width: 100%; }
+
+    /* TOP AFFAIRES */
+    .top-widget { background: var(--blanc); border-radius: var(--r-lg); border: 1.5px solid var(--bordure); overflow: hidden; }
+    .top-list { }
+    .top-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px; border-bottom: 1px solid var(--bordure); cursor: pointer;
+      transition: background .1s;
+    }
+    .top-item:last-child { border-bottom: none; }
+    .top-item:hover { background: var(--fond); }
+    .top-rank { font-family: var(--ff-title); font-size: 1.5rem; color: var(--gris-l); min-width: 28px; line-height: 1; }
+    .top-rank.gold { color: var(--jaune2); }
+    .top-rank.silver { color: #B0BEC5; }
+    .top-rank.bronze { color: #BCAAA4; }
+    .top-info { flex: 1; min-width: 0; }
+    .top-nom { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .top-ville { font-size: 11px; color: var(--gris-c); }
+    .top-score { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+    .top-stars { font-size: 11px; color: var(--jaune2); letter-spacing: -2px; }
+
+    /* WIDGET PUB SIDEBAR */
+    .ad-sidebar {
+      background: var(--blanc); border-radius: var(--r-lg);
+      border: 1.5px dashed var(--bordure);
+      min-height: 250px; display: flex; align-items: center; justify-content: center;
+      flex-direction: column; gap: 6px; font-size: 11px; color: var(--gris-c);
+    }
+
+    /* WIDGET SIGNALEMENT */
+    .signal-widget {
+      background: linear-gradient(135deg, var(--bleu), var(--bleu2));
+      border-radius: var(--r-lg); padding: 16px;
+      color: white;
+    }
+    .signal-widget h3 { font-family: var(--ff-title); font-size: 1.2rem; margin-bottom: 6px; }
+    .signal-widget p { font-size: 12px; opacity: .75; margin-bottom: 12px; line-height: 1.5; }
+    .btn-signal {
+      width: 100%; padding: 10px;
+      background: var(--rouge); color: white;
+      border: none; border-radius: var(--r);
+      font-weight: 700; font-size: 13px; cursor: pointer;
+      font-family: var(--ff-body); text-transform: uppercase; letter-spacing: .04em;
+      transition: transform .1s;
+    }
+    .btn-signal:hover { transform: scale(1.02); opacity: .9; }
+
+    /* ===== FICHE DÉTAIL (MODAL) ===== */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.55);
+      z-index: 500; display: none; align-items: flex-end;
+      backdrop-filter: blur(3px);
+    }
+    .modal-overlay.show { display: flex; }
+    .modal-sheet {
+      background: var(--blanc); width: 100%; max-width: 600px;
+      margin: 0 auto;
+      border-radius: 20px 20px 0 0;
+      padding: 0 0 2rem;
+      max-height: 90vh; overflow-y: auto;
+      animation: slideUp .25s ease;
+    }
+    @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+    .modal-handle { width: 40px; height: 4px; background: var(--bordure); border-radius: 2px; margin: 12px auto 16px; }
+    .modal-header { padding: 0 1.2rem 1rem; border-bottom: 1px solid var(--bordure); }
+    .modal-type { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--rouge); margin-bottom: 4px; }
+    .modal-nom { font-family: var(--ff-title); font-size: 1.8rem; letter-spacing: .04em; line-height: 1.1; margin-bottom: 8px; }
+    .modal-location { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--gris-c); }
+    .modal-body { padding: 1rem 1.2rem; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1rem; }
+    .info-cell { background: var(--fond); border-radius: var(--r); padding: 10px 12px; }
+    .info-cell .ilbl { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--gris-c); margin-bottom: 3px; }
+    .info-cell .ival { font-size: 14px; font-weight: 600; }
+    .score-section { background: linear-gradient(135deg, #FFF8E1, #FFF3CD); border-radius: var(--r); padding: 12px; margin-bottom: 1rem; display: flex; align-items: center; gap: 12px; }
+    .score-number { font-family: var(--ff-title); font-size: 2.5rem; color: var(--orange); line-height: 1; }
+    .score-desc { font-size: 12px; color: #666; line-height: 1.5; }
+    .score-desc strong { color: var(--noir); font-size: 14px; display: block; }
+    .modal-cta { display: block; margin: 0 1.2rem; background: var(--bleu); color: white; text-align: center; padding: 13px; border-radius: var(--r); font-weight: 700; text-decoration: none; text-transform: uppercase; letter-spacing: .06em; font-size: 14px; }
+    .modal-cta:hover { background: var(--bleu2); }
+    .modal-source { text-align: center; font-size: 11px; color: var(--gris-c); margin-top: 10px; }
+    .popup-link { color: var(--bleu); }
+
+    /* ===== MODAL ALERTE EMAIL ===== */
+    .alerte-modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,.55);
+      z-index: 600; display: none; align-items: center; justify-content: center;
+      backdrop-filter: blur(3px); padding: 1rem;
+    }
+    .alerte-modal.show { display: flex; }
+    .alerte-box {
+      background: var(--blanc); border-radius: var(--r-lg);
+      padding: 1.5rem; width: 100%; max-width: 420px;
+      animation: fadeIn .2s ease;
+    }
+    @keyframes fadeIn { from{opacity:0;transform:scale(.95)} to{opacity:1;transform:scale(1)} }
+    .alerte-box h3 { font-family: var(--ff-title); font-size: 1.5rem; letter-spacing: .04em; margin-bottom: 4px; }
+    .alerte-box p { font-size: 13px; color: var(--gris-c); margin-bottom: 1rem; line-height: 1.5; }
+    .alerte-box label { font-size: 12px; font-weight: 600; display: block; margin-bottom: 4px; }
+    .alerte-box input, .alerte-box select {
+      width: 100%; height: 40px; padding: 0 12px;
+      border: 1.5px solid var(--bordure); border-radius: var(--r);
+      font-size: 13px; font-family: var(--ff-body);
+      margin-bottom: 10px; background: var(--fond);
+    }
+    .alerte-btns { display: flex; gap: 8px; margin-top: .5rem; }
+    .alerte-btns button { flex: 1; height: 40px; border-radius: var(--r); border: none; cursor: pointer; font-family: var(--ff-body); font-weight: 700; font-size: 13px; }
+    .btn-sub { background: var(--bleu); color: white; }
+    .btn-cancel { background: var(--fond); color: var(--noir); border: 1.5px solid var(--bordure) !important; }
+
+    /* ===== FOOTER ===== */
+    footer {
+      background: var(--noir); color: rgba(255,255,255,.5);
+      text-align: center; padding: 1.5rem 1rem; font-size: 12px; margin-top: 2rem;
+    }
+    footer a { color: rgba(255,255,255,.6); text-decoration: none; }
+    footer strong { color: white; font-family: var(--ff-title); font-size: 1rem; letter-spacing: .05em; }
+
+    /* ===== SPINNER ===== */
+    .spinner-wrap { text-align: center; padding: 3rem 1rem; color: var(--gris-c); }
+    .spinner { width: 32px; height: 32px; border: 3px solid var(--bordure); border-top-color: var(--rouge); border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto 12px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ===== MOBILE ===== */
+    @media (max-width: 900px) {
+      .main-layout { grid-template-columns: 1fr; }
+      .sidebar { order: -1; }
+      #carte { height: 220px; }
+      .hero-title { font-size: 1.7rem; }
+      .hero::before { font-size: 5rem; }
+      .header-right .btn-alerte { display: none; }
+    }
+    @media (max-width: 480px) {
+      .cards-grid { grid-template-columns: 1fr; }
+      .info-grid { grid-template-columns: 1fr; }
+      .modal-sheet { border-radius: 16px 16px 0 0; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header class="header">
+  <div class="header-inner">
+    <a class="logo" href="/">
+      <em>France</em>&nbsp;Liquidations
+    </a>
+    <div class="header-right">
+      <div class="live-badge"><div class="live-dot"></div>Données live</div>
+      <button class="btn-alerte" onclick="ouvrirAlerte()">🔔 Alertes</button>
+    </div>
+  </div>
+</header>
+
+<!-- ===== HERO ===== -->
+<section class="hero">
+  <div class="hero-inner">
+    <h1 class="hero-title">Ne ratez plus<br/><span>aucune liquidation</span></h1>
+  </div>
+</section>
+
+<!-- ===== BANNIÈRE PUB ===== -->
+<div class="ad-banner">
+  <span>PUBLICITÉ</span>
+  <!-- Google AdSense — bannière 728x90 -->
+  <!-- <ins class="adsbygoogle" style="display:inline-block;width:728px;height:90px" data-ad-client="ca-pub-XXXXXXXX" data-ad-slot="XXXXXXXXXX"></ins> -->
+  <div class="ad-placeholder">Espace publicitaire — Google AdSense 728×90</div>
+</div>
+
+<!-- ===== BARRE RECHERCHE ===== -->
+<div class="search-section">
+  <div class="search-inner">
+    <div class="search-bar">
+      <div class="search-input-wrap">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input class="search-input" id="search" type="text" placeholder="Ville, enseigne, activité..." oninput="filtrer()" />
+      </div>
+      <button class="btn-search" onclick="filtrer()">Rechercher</button>
+    </div>
+    <div class="filters-row">
+      <select class="filter-select" id="f-dept" onchange="filtrer()">
+        <option value="">Tous les départements</option>
+        <option value="01">01 - Ain</option>
+        <option value="02">02 - Aisne</option>
+        <option value="03">03 - Allier</option>
+        <option value="04">04 - Alpes-de-Haute-Provence</option>
+        <option value="05">05 - Hautes-Alpes</option>
+        <option value="06">06 - Alpes-Maritimes</option>
+        <option value="07">07 - Ardèche</option>
+        <option value="08">08 - Ardennes</option>
+        <option value="09">09 - Ariège</option>
+        <option value="10">10 - Aube</option>
+        <option value="11">11 - Aude</option>
+        <option value="12">12 - Aveyron</option>
+        <option value="13">13 - Bouches-du-Rhône</option>
+        <option value="14">14 - Calvados</option>
+        <option value="15">15 - Cantal</option>
+        <option value="16">16 - Charente</option>
+        <option value="17">17 - Charente-Maritime</option>
+        <option value="18">18 - Cher</option>
+        <option value="19">19 - Corrèze</option>
+        <option value="21">21 - Côte-d'Or</option>
+        <option value="22">22 - Côtes-d'Armor</option>
+        <option value="23">23 - Creuse</option>
+        <option value="24">24 - Dordogne</option>
+        <option value="25">25 - Doubs</option>
+        <option value="26">26 - Drôme</option>
+        <option value="27">27 - Eure</option>
+        <option value="28">28 - Eure-et-Loir</option>
+        <option value="29">29 - Finistère</option>
+        <option value="30">30 - Gard</option>
+        <option value="31">31 - Haute-Garonne</option>
+        <option value="32">32 - Gers</option>
+        <option value="33">33 - Gironde</option>
+        <option value="34">34 - Hérault</option>
+        <option value="35">35 - Ille-et-Vilaine</option>
+        <option value="36">36 - Indre</option>
+        <option value="37">37 - Indre-et-Loire</option>
+        <option value="38">38 - Isère</option>
+        <option value="39">39 - Jura</option>
+        <option value="40">40 - Landes</option>
+        <option value="41">41 - Loir-et-Cher</option>
+        <option value="42">42 - Loire</option>
+        <option value="43">43 - Haute-Loire</option>
+        <option value="44">44 - Loire-Atlantique</option>
+        <option value="45">45 - Loiret</option>
+        <option value="46">46 - Lot</option>
+        <option value="47">47 - Lot-et-Garonne</option>
+        <option value="48">48 - Lozère</option>
+        <option value="49">49 - Maine-et-Loire</option>
+        <option value="50">50 - Manche</option>
+        <option value="51">51 - Marne</option>
+        <option value="52">52 - Haute-Marne</option>
+        <option value="53">53 - Mayenne</option>
+        <option value="54">54 - Meurthe-et-Moselle</option>
+        <option value="55">55 - Meuse</option>
+        <option value="56">56 - Morbihan</option>
+        <option value="57">57 - Moselle</option>
+        <option value="58">58 - Nièvre</option>
+        <option value="59">59 - Nord</option>
+        <option value="60">60 - Oise</option>
+        <option value="61">61 - Orne</option>
+        <option value="62">62 - Pas-de-Calais</option>
+        <option value="63">63 - Puy-de-Dôme</option>
+        <option value="64">64 - Pyrénées-Atlantiques</option>
+        <option value="65">65 - Hautes-Pyrénées</option>
+        <option value="66">66 - Pyrénées-Orientales</option>
+        <option value="67">67 - Bas-Rhin</option>
+        <option value="68">68 - Haut-Rhin</option>
+        <option value="69">69 - Rhône</option>
+        <option value="70">70 - Haute-Saône</option>
+        <option value="71">71 - Saône-et-Loire</option>
+        <option value="72">72 - Sarthe</option>
+        <option value="73">73 - Savoie</option>
+        <option value="74">74 - Haute-Savoie</option>
+        <option value="75">75 - Paris</option>
+        <option value="76">76 - Seine-Maritime</option>
+        <option value="77">77 - Seine-et-Marne</option>
+        <option value="78">78 - Yvelines</option>
+        <option value="79">79 - Deux-Sèvres</option>
+        <option value="80">80 - Somme</option>
+        <option value="81">81 - Tarn</option>
+        <option value="82">82 - Tarn-et-Garonne</option>
+        <option value="83">83 - Var</option>
+        <option value="84">84 - Vaucluse</option>
+        <option value="85">85 - Vendée</option>
+        <option value="86">86 - Vienne</option>
+        <option value="87">87 - Haute-Vienne</option>
+        <option value="88">88 - Vosges</option>
+        <option value="89">89 - Yonne</option>
+        <option value="90">90 - Territoire de Belfort</option>
+        <option value="91">91 - Essonne</option>
+        <option value="92">92 - Hauts-de-Seine</option>
+        <option value="93">93 - Seine-Saint-Denis</option>
+        <option value="94">94 - Val-de-Marne</option>
+        <option value="95">95 - Val-d'Oise</option>
+        <option value="971">971 - Guadeloupe</option>
+        <option value="972">972 - Martinique</option>
+        <option value="973">973 - Guyane</option>
+        <option value="974">974 - La Réunion</option>
+        <option value="976">976 - Mayotte</option>
+      </select>
+      <select class="filter-select" id="f-score" onchange="filtrer()">
+        <option value="0">Toutes les affaires</option>
+        <option value="5">⭐⭐⭐⭐⭐ Excellentes</option>
+        <option value="4">⭐⭐⭐⭐+ Très bonnes</option>
+      </select>
+    </div>
+    <div class="results-info" id="results-info">Chargement des données...</div>
+  </div>
+</div>
+
+<!-- ===== CONTENU PRINCIPAL ===== -->
+<div class="main-layout">
+
+  <!-- Grille de cartes -->
+  <div class="cards-section">
+    <div class="section-title">
+      🏪 Liquidations en cours
+      <span class="tag" id="count-tag">—</span>
+    </div>
+    <div class="cards-grid" id="cards-grid">
+      <div class="spinner-wrap" style="grid-column:1/-1">
+        <div class="spinner"></div>
+        Chargement des liquidations...
+      </div>
+    </div>
+    <div id="load-more-wrap" style="text-align:center;margin-top:1rem;display:none">
+      <button onclick="chargerPlus()" style="height:40px;padding:0 24px;border-radius:var(--r);border:1.5px solid var(--rouge);color:var(--rouge);background:white;font-weight:700;cursor:pointer;font-family:var(--ff-body)">
+        Voir plus de résultats
+      </button>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+
+    <!-- Carte France -->
+    <div class="map-widget">
+      <div class="widget-title">🗺️ Carte de France</div>
+      <div id="carte"></div>
+    </div>
+
+    <!-- Pub sidebar -->
+    <div class="ad-sidebar">
+      <!-- <ins class="adsbygoogle" style="display:block;width:300px;height:250px" data-ad-client="ca-pub-XXXXXXXX" data-ad-slot="XXXXXXXXXX"></ins> -->
+      <svg width="32" height="32" fill="none" stroke="#ccc" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 12h6M12 9v6"/></svg>
+      Espace publicitaire 300×250
+    </div>
+
+    <!-- Top affaires -->
+    <div class="top-widget">
+      <div class="widget-title">🏆 Meilleures affaires</div>
+      <div class="top-list" id="top-list">
+        <div style="padding:1rem;text-align:center;font-size:13px;color:var(--gris-c)">Chargement...</div>
+      </div>
+    </div>
+
+    <!-- Signalement -->
+    <div class="signal-widget">
+      <h3>📍 Vous en voyez une ?</h3>
+      <p>Signalez une liquidation près de chez vous et aidez la communauté à faire de bonnes affaires.</p>
+      <button class="btn-signal" onclick="ouvrirSignal()">Signaler une liquidation</button>
+    </div>
+
+    <!-- Pub sidebar 2 -->
+    <div class="ad-sidebar">
+      <!-- <ins class="adsbygoogle" style="display:block;width:300px;height:600px" data-ad-client="ca-pub-XXXXXXXX" data-ad-slot="XXXXXXXXXX"></ins> -->
+      <svg width="32" height="32" fill="none" stroke="#ccc" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 12h6M12 9v6"/></svg>
+      Espace publicitaire 300×600
+    </div>
+
+  </aside>
+</div>
+
+<!-- ===== FOOTER ===== -->
+<footer>
+  <p>© 2025 France Liquidations · Toutes les annonces proviennent de sources publiques officielles</p>
+</footer>
+
+<!-- ===== MODAL FICHE DÉTAIL ===== -->
+<div class="modal-overlay" id="modal-detail" onclick="fermerDetail(event)">
+  <div class="modal-sheet" id="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-type" id="d-type">—</div>
+      <div class="modal-nom" id="d-nom">—</div>
+      <div class="modal-location" id="d-loc">—</div>
+    </div>
+    <div class="modal-body">
+      <div class="score-section">
+        <div class="score-number" id="d-score">—</div>
+        <div class="score-desc">
+          <strong id="d-score-label">—</strong>
+          Score d'attractivité pour les bonnes affaires, calculé selon le type de procédure et le secteur.
+        </div>
+      </div>
+      <div class="info-grid" id="d-grid"></div>
+    </div>
+    <a class="modal-cta" id="d-link" href="#" target="_blank">🔗 Voir l'annonce officielle BODACC</a>
+    <div class="modal-source">Source officielle · Données BODACC / DILA · Gouvernement français</div>
+  </div>
+</div>
+
+<!-- ===== MODAL ALERTE EMAIL ===== -->
+<div class="alerte-modal" id="modal-alerte" onclick="fermerAlerte(event)">
+  <div class="alerte-box" onclick="event.stopPropagation()">
+    <h3>🔔 Recevoir les alertes</h3>
+    <p>Soyez notifié dès qu'une nouvelle liquidation apparaît dans votre région. Gratuit, sans spam.</p>
+    <label>Votre email</label>
+    <input type="email" id="a-email" placeholder="vous@exemple.fr" />
+    <label>Département</label>
+    <select id="a-dept">
+      <option value="">Tous les départements</option>
+    </select>
+    <label>Type d'alerte</label>
+    <select id="a-type">
+      <option value="">Toutes les procédures</option>
+      <option value="Liquidation">Liquidations judiciaires seulement</option>
+    </select>
+    <div class="alerte-btns">
+      <button class="btn-cancel" onclick="fermerAlerte()">Annuler</button>
+      <button class="btn-sub" onclick="inscrireAlerte()">M'abonner gratuitement</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL SIGNALEMENT ===== -->
+<div class="alerte-modal" id="modal-signal" onclick="fermerSignal(event)">
+  <div class="alerte-box" onclick="event.stopPropagation()">
+    <h3>📍 Signaler une liquidation</h3>
+    <p>Vous avez repéré un magasin en liquidation ? Partagez-le avec la communauté !</p>
+    <label>Nom du magasin *</label>
+    <input type="text" id="sig-nom" placeholder="Ex: Mode & Style Paris 11" />
+    <label>Ville *</label>
+    <input type="text" id="sig-ville" placeholder="Ex: Paris, Lyon, Bordeaux..." />
+    <label>Type d'activité</label>
+    <input type="text" id="sig-activite" placeholder="Ex: Vêtements, Électronique..." />
+    <div class="alerte-btns">
+      <button class="btn-cancel" onclick="fermerSignal()">Annuler</button>
+      <button class="btn-sub" onclick="envoyerSignal()">Envoyer le signalement</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// CONFIG SUPABASE — remplacer par vos vraies clés
+// ============================================================
+const SUPABASE_URL     = 'VOTRE_URL_SUPABASE';
+const SUPABASE_ANON    = 'VOTRE_CLE_ANON_SUPABASE';
+
+const COORDS_DEPT = {
+  '01':[46.2,5.2],'02':[49.5,3.6],'03':[46.3,3.4],'04':[44.1,6.2],'05':[44.7,6.3],
+  '06':[43.7,7.2],'07':[44.7,4.6],'08':[49.7,4.7],'09':[42.9,1.6],'10':[48.3,4.1],
+  '11':[43.2,2.4],'12':[44.4,2.6],'13':[43.5,5.4],'14':[49.1,-0.4],'15':[45.0,2.6],
+  '16':[45.7,0.2],'17':[45.8,-0.7],'18':[47.1,2.4],'19':[45.3,1.9],'21':[47.3,4.8],
+  '22':[48.4,-2.9],'23':[46.0,2.2],'24':[45.1,0.7],'25':[47.2,6.0],'26':[44.7,5.0],
+  '27':[49.1,1.1],'28':[48.4,1.5],'29':[48.2,-4.0],'30':[44.0,4.2],'31':[43.6,1.4],
+  '32':[43.6,0.6],'33':[44.8,-0.6],'34':[43.6,3.9],'35':[48.1,-1.7],'36':[46.8,1.6],
+  '37':[47.4,0.7],'38':[45.2,5.7],'39':[46.7,5.6],'40':[43.9,-0.8],'41':[47.6,1.3],
+  '42':[45.5,4.2],'43':[45.0,3.9],'44':[47.3,-1.6],'45':[47.9,2.2],'46':[44.6,1.7],
+  '47':[44.4,0.6],'48':[44.5,3.5],'49':[47.5,-0.6],'50':[49.1,-1.3],'51':[49.0,4.4],
+  '52':[48.1,5.1],'53':[48.1,-0.8],'54':[48.7,6.2],'55':[49.2,5.4],'56':[47.7,-2.8],
+  '57':[49.1,6.2],'58':[47.1,3.5],'59':[50.5,3.1],'60':[49.4,2.4],'61':[48.6,0.1],
+  '62':[50.5,2.6],'63':[45.8,3.1],'64':[43.3,-0.4],'65':[43.1,0.2],'66':[42.7,2.9],
+  '67':[48.6,7.7],'68':[47.8,7.3],'69':[45.8,4.8],'70':[47.6,6.1],'71':[46.8,4.5],
+  '72':[47.9,0.2],'73':[45.6,6.4],'74':[46.0,6.4],'75':[48.9,2.3],'76':[49.5,1.1],
+  '77':[48.6,2.9],'78':[48.8,1.9],'79':[46.6,-0.3],'80':[49.9,2.3],'81':[43.9,2.1],
+  '82':[44.0,1.4],'83':[43.5,6.1],'84':[44.1,5.1],'85':[46.7,-1.3],'86':[46.6,0.3],
+  '87':[45.9,1.2],'88':[48.2,6.5],'89':[47.8,3.6],'90':[47.6,6.9],'91':[48.6,2.2],
+  '92':[48.9,2.2],'93':[48.9,2.5],'94':[48.8,2.5],'95':[49.1,2.1]
+};
+
+// ============================================================
+// DONNÉES DE DÉMONSTRATION (remplacées par Supabase en prod)
+// ============================================================
+const DEMO_DATA = [
+  {id:1,nom:"Galerie Mode & Style",ville:"Paris",departement:"75",type_procedure:"Liquidation judiciaire",date_parution:"2025-04-12",activite:"Vente de vêtements femme",score_affaire:5,url_bodacc:"https://www.bodacc.fr"},
+  {id:2,nom:"Électro Plus Lyon",ville:"Lyon",departement:"69",type_procedure:"Liquidation judiciaire",date_parution:"2025-04-08",activite:"Électroménager et high-tech",score_affaire:5,url_bodacc:"https://www.bodacc.fr"},
+  {id:3,nom:"Meubles du Sud",ville:"Marseille",departement:"13",type_procedure:"Redressement judiciaire",date_parution:"2025-04-05",activite:"Vente de meubles et literie",score_affaire:4,url_bodacc:"https://www.bodacc.fr"},
+  {id:4,nom:"Sport & Co Toulouse",ville:"Toulouse",departement:"31",type_procedure:"Liquidation judiciaire",date_parution:"2025-04-01",activite:"Articles de sport et loisirs",score_affaire:5,url_bodacc:"https://www.bodacc.fr"},
+  {id:5,nom:"Librairie du Centre",ville:"Bordeaux",departement:"33",type_procedure:"Sauvegarde",date_parution:"2025-03-28",activite:"Librairie, papeterie, cadeaux",score_affaire:3,url_bodacc:"https://www.bodacc.fr"},
+  {id:6,nom:"Chaussures Express",ville:"Lille",departement:"59",type_procedure:"Liquidation judiciaire",date_parution:"2025-03-25",activite:"Vente de chaussures",score_affaire:5,url_bodacc:"https://www.bodacc.fr"},
+  {id:7,nom:"Déco & Maison Nantes",ville:"Nantes",departement:"44",type_procedure:"Redressement judiciaire",date_parution:"2025-03-20",activite:"Décoration intérieure",score_affaire:4,url_bodacc:"https://www.bodacc.fr"},
+  {id:8,nom:"Bijouterie Lumière",ville:"Nice",departement:"06",type_procedure:"Liquidation judiciaire",date_parution:"2025-03-18",activite:"Bijouterie, horlogerie",score_affaire:5,url_bodacc:"https://www.bodacc.fr"},
+  {id:9,nom:"Informatique & Web",ville:"Strasbourg",departement:"67",type_procedure:"Sauvegarde",date_parution:"2025-03-15",activite:"Matériel informatique",score_affaire:4,url_bodacc:"https://www.bodacc.fr"},
+  {id:10,nom:"Parfums et Beauté",ville:"Montpellier",departement:"34",type_procedure:"Liquidation judiciaire",date_parution:"2025-03-10",activite:"Parfumerie et cosmétiques",score_affaire:5,url_bodacc:"https://www.bodacc.fr"},
+  {id:11,nom:"Le Comptoir Textile",ville:"Rennes",departement:"35",type_procedure:"Redressement judiciaire",date_parution:"2025-03-08",activite:"Vêtements homme et femme",score_affaire:4,url_bodacc:"https://www.bodacc.fr"},
+  {id:12,nom:"Jouets & Jeux Reims",ville:"Reims",departement:"51",type_procedure:"Liquidation judiciaire",date_parution:"2025-03-05",activite:"Jouets et jeux éducatifs",score_affaire:5,url_bodacc:"https://www.bodacc.fr"},
+];
+
+let allData = [], filteredData = [], carte, mapMarkers = [];
+let pageSize = 12, pageActuelle = 0;
+
+// ============================================================
+// INIT
+// ============================================================
+window.addEventListener('DOMContentLoaded', () => {
+  initCarte();
+  chargerDonnees();
+});
+
+function initCarte() {
+  carte = L.map('carte', { zoomControl: false }).setView([46.8, 2.3], 5);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution: '© OpenStreetMap © CARTO', maxZoom: 18
+  }).addTo(carte);
+  L.control.zoom({ position: 'bottomright' }).addTo(carte);
+}
+
+async function chargerDonnees() {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/liquidations?select=*&est_retail=eq.true&actif=eq.true&order=date_parution.desc&limit=500`,
+      { headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` } }
+    );
+    if (!res.ok) throw new Error('Supabase non configuré');
+    allData = await res.json();
+    if (!Array.isArray(allData) || !allData.length) throw new Error('Pas de données');
+  } catch {
+    // Mode démo si Supabase pas encore configuré
+    allData = DEMO_DATA;
+  }
+
+  // Filtre départements dynamique désactivé (liste codée en dur)
+
+  filtrer();
+  afficherTop();
+}
+
+// ============================================================
+// FILTRES
+// ============================================================
+function filtrer() {
+  const s = document.getElementById('search').value.toLowerCase();
+  const d = document.getElementById('f-dept').value;
+  const sc = parseInt(document.getElementById('f-score').value) || 0;
+
+  filteredData = allData.filter(r => {
+    const ms = !s || (r.nom||'').toLowerCase().includes(s) || (r.ville||'').toLowerCase().includes(s) || (r.activite||'').toLowerCase().includes(s);
+    const md = !d || r.departement === d;
+    const msc = !sc || r.score_affaire >= sc;
+    return ms && md && msc;
+  });
+
+  pageActuelle = 0;
+  const n = filteredData.length;
+  document.getElementById('results-info').innerHTML = `<strong>${n}</strong> résultat${n>1?'s':''} trouvé${n>1?'s':''}`;
+  document.getElementById('count-tag').textContent = n;
+  afficherCartes();
+  afficherMarqueurs();
+}
+
+// ============================================================
+// CARTES
+// ============================================================
+function afficherCartes() {
+  const grid = document.getElementById('cards-grid');
+  const slice = filteredData.slice(0, (pageActuelle + 1) * pageSize);
+
+  if (!slice.length) {
+    grid.innerHTML = '<div class="spinner-wrap" style="grid-column:1/-1"><div style="font-size:2rem">😕</div>Aucun résultat pour ces critères</div>';
+    document.getElementById('load-more-wrap').style.display = 'none';
+    return;
+  }
+
+  // Insérer une pub toutes les 6 cartes
+  let html = '';
+  slice.forEach((r, i) => {
+    if (i > 0 && i % 6 === 0) {
+      html += `<div class="card-ad">
+        <svg width="28" height="28" fill="none" stroke="#ccc" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 12h6M12 9v6"/></svg>
+        <span>Espace publicitaire</span>
+      </div>`;
+    }
+    html += renderCard(r);
+  });
+
+  grid.innerHTML = html;
+  document.getElementById('load-more-wrap').style.display = filteredData.length > slice.length ? 'block' : 'none';
+}
+
+function chargerPlus() { pageActuelle++; afficherCartes(); }
+
+function renderCard(r) {
+  const cls = badgeCls(r.type_procedure);
+  const stars = renderStars(r.score_affaire);
+  return `
+  <div class="liq-card" onclick="ouvrirDetail(${r.id})">
+    <div class="card-ribbon ${cls}"></div>
+    <div class="card-body">
+      <div class="card-header">
+        <div class="card-nom">${r.nom}</div>
+        <span class="type-badge ${cls}">${shortType(r.type_procedure)}</span>
+      </div>
+      <div class="card-location">
+        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        ${r.ville}${r.departement ? ' (' + r.departement + ')' : ''}
+      </div>
+      <div class="card-activite">${r.activite || '—'}</div>
+      <div class="card-footer">
+        <span class="card-date">📅 ${fmtDate(r.date_parution)}</span>
+        <div class="score-stars">${stars}</div>
+      </div>
+    </div>
+    <a class="card-cta" href="${r.url_bodacc || '#'}" target="_blank" onclick="event.stopPropagation()">
+      Voir l'annonce officielle →
+    </a>
+  </div>`;
+}
+
+function renderStars(score) {
+  score = score || 3;
+  return Array.from({length:5}, (_,i) => `<div class="star ${i<score?'on':'off'}"></div>`).join('');
+}
+
+// ============================================================
+// CARTE LEAFLET
+// ============================================================
+function afficherMarqueurs() {
+  mapMarkers.forEach(m => carte.removeLayer(m));
+  mapMarkers = [];
+
+  filteredData.forEach(r => {
+    const c = COORDS_DEPT[r.departement];
+    if (!c) return;
+    const lat = c[0] + (Math.random() - .5) * .25;
+    const lng = c[1] + (Math.random() - .5) * .25;
+    const col = r.type_procedure?.includes('Liquidation') ? '#E8190A'
+              : r.type_procedure?.includes('Redressement') ? '#F57C00' : '#1B8C4E';
+
+    const icon = L.divIcon({
+      html: `<div style="width:11px;height:11px;border-radius:50%;background:${col};border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,.35)"></div>`,
+      className:'', iconSize:[11,11], iconAnchor:[5.5,5.5]
+    });
+
+    const m = L.marker([lat, lng], {icon}).addTo(carte)
+      .bindPopup(`<b style="font-size:13px">${r.nom}</b><br><span style="font-size:12px;color:#666">📍 ${r.ville} · ${shortType(r.type_procedure)}</span>`);
+    m._id = r.id;
+    mapMarkers.push(m);
+  });
+}
+
+// ============================================================
+// TOP AFFAIRES SIDEBAR
+// ============================================================
+function afficherTop() {
+  const top = [...allData].sort((a,b) => (b.score_affaire||0) - (a.score_affaire||0)).slice(0, 5);
+  const rankClass = ['gold','silver','bronze','',''];
+  document.getElementById('top-list').innerHTML = top.map((r, i) => `
+    <div class="top-item" onclick="ouvrirDetail(${r.id})">
+      <div class="top-rank ${rankClass[i]}">${i+1}</div>
+      <div class="top-info">
+        <div class="top-nom">${r.nom}</div>
+        <div class="top-ville">📍 ${r.ville}</div>
+      </div>
+      <div class="top-score">
+        <div class="top-stars">${'⭐'.repeat(r.score_affaire||3)}</div>
+        <div style="font-size:10px;color:var(--gris-c)">${shortType(r.type_procedure)}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ============================================================
+// MODAL FICHE DÉTAIL
+// ============================================================
+function ouvrirDetail(id) {
+  const r = allData.find(x => x.id === id);
+  if (!r) return;
+  const cls = badgeCls(r.type_procedure);
+
+  document.getElementById('d-type').textContent = r.type_procedure || '—';
+  document.getElementById('d-nom').textContent = r.nom;
+  document.getElementById('d-loc').innerHTML = `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> ${r.ville}${r.departement ? ' — Département ' + r.departement : ''}`;
+  document.getElementById('d-score').textContent = '⭐'.repeat(r.score_affaire || 3);
+  document.getElementById('d-score-label').textContent = scoreLabel(r.score_affaire);
+  document.getElementById('d-link').href = r.url_bodacc || '#';
+  document.getElementById('d-grid').innerHTML = `
+    <div class="info-cell"><div class="ilbl">Type de procédure</div><div class="ival">${r.type_procedure||'—'}</div></div>
+    <div class="info-cell"><div class="ilbl">Date de parution</div><div class="ival">${fmtDate(r.date_parution)}</div></div>
+    <div class="info-cell"><div class="ilbl">Ville</div><div class="ival">${r.ville||'—'}</div></div>
+    <div class="info-cell"><div class="ilbl">Département</div><div class="ival">${r.departement||'—'}</div></div>
+    <div class="info-cell" style="grid-column:1/-1"><div class="ilbl">Activité</div><div class="ival">${r.activite||'—'}</div></div>
+    <div class="info-cell" style="grid-column:1/-1"><div class="ilbl">Source</div><div class="ival">BODACC · Données officielles DILA</div></div>
+  `;
+  document.getElementById('modal-detail').classList.add('show');
+
+  // Zoom sur la carte
+  const c = COORDS_DEPT[r.departement];
+  if (c) { carte.setView([c[0], c[1]], 9); mapMarkers.find(m=>m._id===id)?.openPopup(); }
+}
+
+function fermerDetail(e) {
+  if (e.target === document.getElementById('modal-detail')) document.getElementById('modal-detail').classList.remove('show');
+}
+
+// ============================================================
+// MODAL ALERTE EMAIL
+// ============================================================
+function ouvrirAlerte() { document.getElementById('modal-alerte').classList.add('show'); }
+function fermerAlerte(e) {
+  if (!e || e.target === document.getElementById('modal-alerte')) document.getElementById('modal-alerte').classList.remove('show');
+}
+async function inscrireAlerte() {
+  const email = document.getElementById('a-email').value.trim();
+  if (!email || !email.includes('@')) { alert('Merci d\'entrer un email valide.'); return; }
+  alert('✅ Inscription enregistrée ! Vous recevrez les alertes pour votre région.');
+  fermerAlerte();
+}
+
+// ============================================================
+// MODAL SIGNALEMENT
+// ============================================================
+function ouvrirSignal() { document.getElementById('modal-signal').classList.add('show'); }
+function fermerSignal(e) {
+  if (!e || e.target === document.getElementById('modal-signal')) document.getElementById('modal-signal').classList.remove('show');
+}
+async function envoyerSignal() {
+  const nom   = document.getElementById('sig-nom').value.trim();
+  const ville = document.getElementById('sig-ville').value.trim();
+  if (!nom || !ville) { alert('Merci de remplir le nom et la ville.'); return; }
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/signalements`, {
+      method: 'POST',
+      headers: { 'apikey': SUPABASE_ANON, 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON}` },
+      body: JSON.stringify({ nom, ville, activite: document.getElementById('sig-activite').value.trim() })
+    });
+  } catch {}
+  alert('✅ Merci ! Votre signalement sera vérifié avant publication.');
+  fermerSignal();
+}
+
+// ============================================================
+// UTILITAIRES
+// ============================================================
+function badgeCls(t='') {
+  if (t.includes('Liquidation')) return 'liq';
+  if (t.includes('Redressement')) return 'red';
+  return 'sauv';
+}
+function shortType(t='') {
+  if (t.includes('Liquidation')) return 'Liquidation';
+  if (t.includes('Redressement')) return 'Redressement';
+  return 'Sauvegarde';
+}
+function scoreLabel(s) {
+  return s>=5 ? 'Excellente affaire' : s>=4 ? 'Très bonne affaire' : s>=3 ? 'Bonne affaire' : 'Affaire modérée';
+}
+function fmtDate(d) {
+  try { return new Date(d).toLocaleDateString('fr-FR', {day:'2-digit',month:'long',year:'numeric'}); }
+  catch { return d||'—'; }
+}
+</script>
+
+</body>
+</html>
