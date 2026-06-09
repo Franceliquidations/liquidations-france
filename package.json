@@ -1,12 +1,13 @@
 {
   "name": "liquidations-france-collecteur",
   "version": "1.0.0",
-  "description": "Collecteur automatique BODACC pour le site Liquidations France",
+  "description": "Collecteur automatique BODACC pour le site France Liquidations",
   "main": "collecteur.js",
   "scripts": {
     "start": "node collecteur.js"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.39.0"
+    "@supabase/supabase-js": "^2.39.0",
+    "ws": "^8.16.0"
   }
 }
