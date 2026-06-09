@@ -22,16 +22,14 @@ jobs:
         with:
           node-version: '20'
 
-      - name: 📦 Installer les dépendances
+- name: 📦 Installer les dépendances
         run: npm install
-        working-directory: ./src
 
       - name: 🚀 Lancer la collecte BODACC
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: node collecteur.js
-        working-directory: ./src
 
       - name: ✅ Collecte terminée
         run: echo "Base de données mise à jour avec succès !"
