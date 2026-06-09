@@ -47,16 +47,21 @@ function scoreAffaire(record) {
 }
 
 async function fetchBODACC(offset = 0) {
+  // Requête simplifiée — on filtre sur familleavis (code court) plutôt que le libellé long
+  // pc = procédures collectives (liquidations, redressements, sauvegardes)
   const params = new URLSearchParams({
     limit: 100,
     offset,
     order_by: 'dateparution DESC',
     select: 'id,dateparution,ville,cp,nomcommercial,activite,familleavis_lib,numerodepartement,publicationavis',
-    where: `familleavis_lib IN ("Jugement de liquidation","Jugement d'ouverture de la procédure de liquidation judiciaire","Redressement judiciaire","Jugement de redressement","Sauvegarde","Jugement d'ouverture de la procédure de sauvegarde") AND dateparution >= "2024-01-01"`
+    where: 'familleavis:"pc"'
   });
 
   const res = await fetch(`${BODACC_API}?${params}`);
-  if (!res.ok) throw new Error(`BODACC API erreur: ${res.status}`);
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`BODACC API erreur: ${res.status} — ${txt.slice(0,200)}`);
+  }
   return res.json();
 }
 
