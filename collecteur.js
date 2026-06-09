@@ -53,7 +53,7 @@ async function fetchBODACC(offset = 0) {
     limit: 100,
     offset,
     order_by: 'dateparution DESC',
-    select: 'id,dateparution,ville,cp,nomcommercial,activite,familleavis_lib,numerodepartement,publicationavis',
+    select: 'id,dateparution,ville,cp,activite,familleavis_lib,numerodepartement,publicationavis',
     where: 'familleavis:"pc"'
   });
 
