@@ -4,6 +4,7 @@
 // ============================================================
 
 const { createClient } = require('@supabase/supabase-js');
+const ws = require('ws');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -113,7 +114,10 @@ async function main() {
   console.log('🚀 Démarrage du collecteur BODACC...');
   console.log(`📅 Date: ${new Date().toLocaleDateString('fr-FR')}`);
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
+    global: { headers: {} },
+    realtime: { transport: ws }
+  });
 
   let totalInsere = 0;
   let totalIgnore = 0;
