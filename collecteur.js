@@ -20,9 +20,20 @@ const SECTEURS_RETAIL = [
   'détail','commerce','magasin','boutique','enseigne'
 ];
 
-function estRetail(activite = '') {
-  const a = activite.toLowerCase();
-  return SECTEURS_RETAIL.some(s => a.includes(s));
+// Mots-clés indiquant une procédure collective
+const MOTS_PROCEDURE = [
+  'liquidation','redressement','sauvegarde','procédure collective',
+  'jugement','ouverture','insolvab'
+];
+
+function estRetail(texte = '') {
+  const t = texte.toLowerCase();
+  return SECTEURS_RETAIL.some(s => t.includes(s));
+}
+
+function estProcedureCollective(familleavis = '', familleavis_lib = '') {
+  const f = (familleavis + ' ' + familleavis_lib).toLowerCase();
+  return MOTS_PROCEDURE.some(m => f.includes(m));
 }
 
 function scoreAffaire(type = '', activite = '') {
@@ -32,35 +43,35 @@ function scoreAffaire(type = '', activite = '') {
   return Math.min(score, 5);
 }
 
-// Extraire infos depuis publicationavis (structure imbriquée BODACC)
 function extraireInfos(r) {
   const pub = r.publicationavis || {};
-
-  // Nom : chercher dans toutes les structures possibles
-  let nom = pub.commercant || pub.denomination || '';
+  
+  // Chercher le nom dans toutes les structures possibles
+  let nom = r.commercant || pub.commercant || pub.denomination || '';
   if (!nom && pub.listepersonnes && pub.listepersonnes[0]) {
     const p = pub.listepersonnes[0];
-    nom = p.denomination || p.nom || (p.prenom ? `${p.prenom} ${p.nom||''}` : '') || '';
+    nom = p.denomination || p.commercant || p.nom || '';
+    if (!nom && p.prenom) nom = `${p.prenom} ${p.nom||''}`;
   }
-  if (!nom) nom = r.commercant || 'N/A';
+  if (!nom) nom = 'N/A';
 
   // Activité
-  let activite = '';
-  if (pub.listepersonnes && pub.listepersonnes[0]) {
-    activite = pub.listepersonnes[0].activite || pub.listepersonnes[0].activitedetail || '';
+  let activite = r.activite || pub.activite || '';
+  if (!activite && pub.listepersonnes && pub.listepersonnes[0]) {
+    const p = pub.listepersonnes[0];
+    activite = p.activite || p.activitedetail || p.formeJuridique || '';
   }
-  if (!activite) activite = pub.activite || '';
 
   // Adresse
+  let ville  = r.ville || '';
+  let cp     = r.cp || '';
   let adresse = '';
-  let ville = r.ville || '';
-  let cp = r.cp || '';
   if (pub.listepersonnes && pub.listepersonnes[0]) {
     const adr = pub.listepersonnes[0].adresse || {};
     const rue = [adr.numvoie, adr.typevoie, adr.nomvoie].filter(Boolean).join(' ');
-    if (rue) adresse = `${rue}, ${adr.codepostal||cp} ${adr.ville||ville}`.trim();
     if (!ville && adr.ville) ville = adr.ville;
     if (!cp && adr.codepostal) cp = adr.codepostal;
+    if (rue) adresse = `${rue}, ${cp} ${ville}`.trim();
   }
 
   const dept = r.numerodepartement || (cp ? cp.substring(0,2) : '');
@@ -69,17 +80,15 @@ function extraireInfos(r) {
 }
 
 async function fetchBODACC(offset = 0) {
-  // Requête minimale — seulement les champs qui existent avec certitude
+  // Sans filtre where — on récupère tout et on filtre côté JS
+  // car les codes familleavis varient et sont mal documentés
   const params = new URLSearchParams({
     limit: 100,
     offset,
-    order_by: 'dateparution DESC',
-    where: 'familleavis:"pc"'
+    order_by: 'dateparution DESC'
   });
 
   const url = `${BODACC_API}?${params}`;
-  console.log(`   URL: ${url}`);
-
   const res = await fetch(url);
   if (!res.ok) {
     const txt = await res.text();
@@ -116,32 +125,43 @@ async function main() {
     const records = data.results || [];
     console.log(`   → ${records.length} annonces reçues`);
 
-    // Log du premier record pour déboguer la structure
+    // Log structure du premier record pour débogage
     if (offset === 0 && records.length > 0) {
-      console.log('   → Exemple de champs disponibles:', Object.keys(records[0]).join(', '));
+      const r0 = records[0];
+      console.log(`   → Champs disponibles: ${Object.keys(r0).join(', ')}`);
+      console.log(`   → familleavis: "${r0.familleavis}" | familleavis_lib: "${r0.familleavis_lib}"`);
+      // Afficher les valeurs uniques de familleavis dans ce batch
+      const familles = [...new Set(records.map(r => `${r.familleavis}|${r.familleavis_lib}`))];
+      console.log(`   → Familles présentes: ${familles.join(' / ')}`);
     }
 
     if (records.length === 0) { continuer = false; break; }
 
     const toInsert = [];
     for (const r of records) {
-      const { nom, activite, adresse, ville, cp, dept } = extraireInfos(r);
-      const type = r.familleavis_lib || '';
+      const fa    = r.familleavis || '';
+      const faLib = r.familleavis_lib || '';
 
+      // Filtrer uniquement les procédures collectives
+      if (!estProcedureCollective(fa, faLib)) continue;
+
+      const { nom, activite, adresse, ville, cp, dept } = extraireInfos(r);
+
+      // Filtrer uniquement le retail
       if (!estRetail(activite) && !estRetail(nom)) continue;
 
       toInsert.push({
         bodacc_id:      r.id || '',
-        nom:            nom || 'N/A',
-        ville:          ville || '',
+        nom,
+        ville,
         adresse:        adresse || null,
-        code_postal:    cp || '',
-        departement:    dept || '',
-        type_procedure: type,
+        code_postal:    cp,
+        departement:    dept,
+        type_procedure: faLib,
         date_parution:  r.dateparution ? r.dateparution.split('T')[0] : null,
-        activite:       activite || '',
+        activite,
         est_retail:     true,
-        score_affaire:  scoreAffaire(type, activite),
+        score_affaire:  scoreAffaire(faLib, activite),
         url_bodacc:     `https://www.bodacc.fr/pages/annonces-commerciales-detail/?q.id=id:${r.id}`,
         verifie:        true,
         source:         'BODACC',
@@ -149,7 +169,7 @@ async function main() {
       });
     }
 
-    console.log(`   → ${toInsert.length} annonces retail à insérer`);
+    console.log(`   → ${toInsert.length} annonces retail procédures collectives`);
 
     if (toInsert.length > 0) {
       const { error } = await supabase
@@ -166,12 +186,12 @@ async function main() {
 
     totalIgnore += (records.length - toInsert.length);
     offset += 100;
-    if (offset >= 300 || records.length < 100) continuer = false;
+    if (offset >= 500 || records.length < 100) continuer = false;
   }
 
   console.log(`\n✅ Collecte terminée !`);
   console.log(`   📦 Insertions : ${totalInsere}`);
-  console.log(`   ⏭️  Ignorés (hors retail) : ${totalIgnore}`);
+  console.log(`   ⏭️  Ignorés : ${totalIgnore}`);
 
   try {
     await supabase.from('meta').upsert({ cle: 'derniere_collecte', valeur: new Date().toISOString() });
