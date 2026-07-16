@@ -120,6 +120,12 @@ async function parserFluxRSS(requete) {
 async function main() {
   console.log('🚀 Démarrage du collecteur RSS...');
   console.log(`📅 Date: ${new Date().toLocaleDateString('fr-FR')}`);
+  console.log(`🔗 Supabase URL: ${SUPABASE_URL ? SUPABASE_URL.substring(0,30)+'...' : 'NON DÉFINIE !'}`);
+
+  if (!SUPABASE_URL || !SUPABASE_KEY) {
+    console.error('❌ Variables d\'environnement manquantes !');
+    process.exit(1);
+  }
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
     global: { headers: {} },
@@ -161,12 +167,15 @@ async function main() {
       actif:          true
     }));
 
+    // Insert simple — ignore les doublons via la contrainte UNIQUE sur source_url
     const { error } = await supabase
       .from('liquidations')
-      .upsert(toInsert, { onConflict: 'source_url', ignoreDuplicates: true });
+      .insert(toInsert)
+      .select();
 
     if (error) {
       console.error(`   ❌ Erreur Supabase: ${error.message}`);
+      console.error(`   ❌ Détail: ${JSON.stringify(error)}`);
     } else {
       totalInsere += toInsert.length;
       console.log(`   ✅ ${toInsert.length} insérés`);
