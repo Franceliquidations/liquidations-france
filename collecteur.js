@@ -3,102 +3,122 @@ const ws = require('ws');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
-const BODACC_API  = 'https://bodacc-datadila.opendatasoft.com/api/explore/v2.1/catalog/datasets/annonces-commerciales/records';
 
-const SECTEURS_RETAIL = [
-  'vêtement','habillement','mode','textile','lingerie','chaussure',
-  'électronique','électroménager','informatique','téléphonie','high-tech',
-  'meuble','ameublement','décoration','literie','maison',
-  'sport','loisir','jouet','jeux',
-  'librairie','livre','papeterie',
-  'bijou','bijouterie','horlogerie','accessoire',
-  'bricolage','jardinerie',
-  'cosméti','parfum','beauté',
-  'alimentation','épicerie','supermarché','traiteur',
-  'restaurant','café','brasserie',
-  'optique','lunette',
-  'détail','commerce','magasin','boutique','enseigne'
+// ============================================================
+// FLUX RSS GOOGLE ACTUALITÉS
+// ============================================================
+const FLUX_RSS = [
+  'liquidation+totale+magasin+france',
+  'liquidation+judiciaire+commerce+france',
+  'fermeture+définitive+boutique+france',
+  'liquidation+stock+enseigne+france',
+  'tout+doit+partir+liquidation+france',
+  'liquidation+vêtements+france',
+  'liquidation+électroménager+france',
+  'liquidation+meubles+france',
+  'liquidation+chaussures+france',
+  'liquidation+sport+france',
+  'fermeture+magasin+liquidation+soldes',
+  'dépôt+bilan+enseigne+france',
+  'redressement+judiciaire+commerce+france',
 ];
 
-// Mots-clés indiquant une procédure collective
-const MOTS_PROCEDURE = [
-  'liquidation','redressement','sauvegarde','procédure collective',
-  'jugement','ouverture','insolvab'
+const MOTS_POSITIFS = [
+  'liquidation','fermeture définitive','tout doit partir','dépôt de bilan',
+  'redressement judiciaire','liquidation judiciaire','liquidation totale',
+  'fermeture boutique','fermeture magasin','soldes de fermeture',
+  'liquidation stock','vente liquidation'
 ];
 
-function estRetail(texte = '') {
-  const t = texte.toLowerCase();
-  return SECTEURS_RETAIL.some(s => t.includes(s));
+const MOTS_EXCLUS = [
+  'liquidités','liquidation boursière','assurance liquidation',
+  'liquidation succession','liquidation société holding'
+];
+
+function estPertinent(titre, description) {
+  const texte = (titre + ' ' + description).toLowerCase();
+  const positif = MOTS_POSITIFS.some(m => texte.includes(m.toLowerCase()));
+  const exclu   = MOTS_EXCLUS.some(m => texte.includes(m.toLowerCase()));
+  return positif && !exclu;
 }
 
-function estProcedureCollective(familleavis = '', familleavis_lib = '') {
-  const f = (familleavis + ' ' + familleavis_lib).toLowerCase();
-  return MOTS_PROCEDURE.some(m => f.includes(m));
+function extraireDept(texte) {
+  const match = texte.match(/\b(0[1-9]|[1-8]\d|9[0-5]|97[1-6])\d{3}\b/);
+  if (match) return match[0].substring(0, 2);
+  return '';
 }
 
-function scoreAffaire(type = '', activite = '') {
-  let score = 3;
-  if (type.toLowerCase().includes('liquidation')) score += 1;
-  if (['électronique','meuble','ameublement','vêtement','mode','chaussure'].some(s => activite.toLowerCase().includes(s))) score += 1;
-  return Math.min(score, 5);
+function extraireVille(texte) {
+  const match = texte.match(/\b(?:à|de|en|sur)\s+([A-ZÉÈÊËÀÂÙÛÜÎÏÔŒÆÇ][a-zéèêëàâùûüîïôœæç]+(?:[-\s][A-ZÉÈÊËÀÂÙÛÜÎÏÔŒÆÇ][a-zéèêëàâùûüîïôœæç]+)*)/);
+  if (match) return match[1];
+  return '';
 }
 
-function extraireInfos(r) {
-  const pub = r.publicationavis || {};
-  
-  // Chercher le nom dans toutes les structures possibles
-  let nom = r.commercant || pub.commercant || pub.denomination || '';
-  if (!nom && pub.listepersonnes && pub.listepersonnes[0]) {
-    const p = pub.listepersonnes[0];
-    nom = p.denomination || p.commercant || p.nom || '';
-    if (!nom && p.prenom) nom = `${p.prenom} ${p.nom||''}`;
+function extraireEnseigne(titre) {
+  const patterns = [
+    /^(.+?)\s+(?:en liquidation|en redressement|ferme définitivement|fermeture)/i,
+    /liquidation\s+(?:de\s+)?(.+?)(?:\s+à|\s+en|\s*:|\s*-|\s*\|)/i,
+    /fermeture\s+(?:de\s+)?(.+?)(?:\s+à|\s+en|\s*:|\s*-|\s*\|)/i,
+  ];
+  for (const p of patterns) {
+    const m = titre.match(p);
+    if (m && m[1] && m[1].length < 60) return m[1].trim();
   }
-  if (!nom) nom = 'N/A';
-
-  // Activité
-  let activite = r.activite || pub.activite || '';
-  if (!activite && pub.listepersonnes && pub.listepersonnes[0]) {
-    const p = pub.listepersonnes[0];
-    activite = p.activite || p.activitedetail || p.formeJuridique || '';
-  }
-
-  // Adresse
-  let ville  = r.ville || '';
-  let cp     = r.cp || '';
-  let adresse = '';
-  if (pub.listepersonnes && pub.listepersonnes[0]) {
-    const adr = pub.listepersonnes[0].adresse || {};
-    const rue = [adr.numvoie, adr.typevoie, adr.nomvoie].filter(Boolean).join(' ');
-    if (!ville && adr.ville) ville = adr.ville;
-    if (!cp && adr.codepostal) cp = adr.codepostal;
-    if (rue) adresse = `${rue}, ${cp} ${ville}`.trim();
-  }
-
-  const dept = r.numerodepartement || (cp ? cp.substring(0,2) : '');
-
-  return { nom: nom.trim(), activite: activite.trim(), adresse, ville, cp, dept };
+  return titre.substring(0, 80).trim();
 }
 
-async function fetchBODACC(offset = 0) {
-  // Sans filtre where — on récupère tout et on filtre côté JS
-  // car les codes familleavis varient et sont mal documentés
-  const params = new URLSearchParams({
-    limit: 100,
-    offset,
-    order_by: 'dateparution DESC'
-  });
+async function parserFluxRSS(requete) {
+  const url = `https://news.google.com/rss/search?q=${requete}&hl=fr&gl=FR&ceid=FR:fr`;
 
-  const url = `${BODACC_API}?${params}`;
-  const res = await fetch(url);
-  if (!res.ok) {
-    const txt = await res.text();
-    throw new Error(`BODACC API erreur: ${res.status} — ${txt.slice(0,300)}`);
+  try {
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; LiquidationsFrance/1.0)' }
+    });
+    if (!res.ok) {
+      console.log(`   ⚠️  Flux erreur ${res.status}`);
+      return [];
+    }
+
+    const xml = await res.text();
+    const articles = [];
+    const items = xml.match(/<item>([\s\S]*?)<\/item>/g) || [];
+
+    for (const item of items) {
+      const titre  = (item.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/)  || item.match(/<title>(.*?)<\/title>/))?.[1]  || '';
+      const lien   = (item.match(/<link>(.*?)<\/link>/)                    || item.match(/<link><!\[CDATA\[(.*?)\]\]><\/link>/))?.[1] || '';
+      const desc   = (item.match(/<description><!\[CDATA\[(.*?)\]\]><\/description>/) || item.match(/<description>(.*?)<\/description>/))?.[1] || '';
+      const date   = (item.match(/<pubDate>(.*?)<\/pubDate>/))?.[1] || '';
+      const source = (item.match(/<source[^>]*>(.*?)<\/source>/))?.[1] || '';
+
+      const descPropre  = desc.replace(/<[^>]+>/g, ' ').replace(/&amp;/g,'&').replace(/&quot;/g,'"').trim();
+      const titrePropre = titre.replace(/<[^>]+>/g, '').replace(/&amp;/g,'&').replace(/&quot;/g,'"').trim();
+
+      if (!titrePropre || !lien) continue;
+      if (!estPertinent(titrePropre, descPropre)) continue;
+
+      const texteComplet = titrePropre + ' ' + descPropre;
+
+      articles.push({
+        titre:          titrePropre,
+        lien,
+        description:    descPropre.substring(0, 500),
+        date_article:   date ? new Date(date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        source_media:   source,
+        ville:          extraireVille(texteComplet),
+        departement:    extraireDept(texteComplet),
+        nom:            extraireEnseigne(titrePropre),
+      });
+    }
+
+    return articles;
+  } catch(e) {
+    console.log(`   ⚠️  Erreur: ${e.message}`);
+    return [];
   }
-  return res.json();
 }
 
 async function main() {
-  console.log('🚀 Démarrage du collecteur BODACC...');
+  console.log('🚀 Démarrage du collecteur RSS...');
   console.log(`📅 Date: ${new Date().toLocaleDateString('fr-FR')}`);
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
@@ -106,92 +126,58 @@ async function main() {
     realtime: { transport: ws }
   });
 
-  let totalInsere = 0;
-  let totalIgnore = 0;
-  let offset = 0;
-  let continuer = true;
+  let totalArticles = 0;
+  let totalInsere   = 0;
+  const dejaVus     = new Set();
 
-  while (continuer) {
-    console.log(`\n📡 Récupération des annonces (offset: ${offset})...`);
+  for (const requete of FLUX_RSS) {
+    console.log(`\n📰 Flux: "${requete.replace(/\+/g,' ')}"...`);
 
-    let data;
-    try {
-      data = await fetchBODACC(offset);
-    } catch (e) {
-      console.error('❌ Erreur API BODACC:', e.message);
-      break;
+    const articles = await parserFluxRSS(requete);
+    console.log(`   → ${articles.length} articles pertinents`);
+    totalArticles += articles.length;
+
+    const nouveaux = articles.filter(a => !dejaVus.has(a.lien));
+    nouveaux.forEach(a => dejaVus.add(a.lien));
+    if (nouveaux.length === 0) continue;
+
+    const toInsert = nouveaux.map(a => ({
+      source_url:     a.lien,
+      nom:            a.nom,
+      ville:          a.ville || '',
+      adresse:        null,
+      code_postal:    '',
+      departement:    a.departement || '',
+      type_procedure: 'Liquidation (presse)',
+      date_parution:  a.date_article,
+      activite:       '',
+      description:    a.description,
+      source_media:   a.source_media,
+      est_retail:     true,
+      score_affaire:  3,
+      url_bodacc:     a.lien,
+      verifie:        false,
+      source:         'Google Actualités',
+      actif:          true
+    }));
+
+    const { error } = await supabase
+      .from('liquidations')
+      .upsert(toInsert, { onConflict: 'source_url', ignoreDuplicates: true });
+
+    if (error) {
+      console.error(`   ❌ Erreur Supabase: ${error.message}`);
+    } else {
+      totalInsere += toInsert.length;
+      console.log(`   ✅ ${toInsert.length} insérés`);
     }
 
-    const records = data.results || [];
-    console.log(`   → ${records.length} annonces reçues`);
-
-    // Log structure du premier record pour débogage
-    if (offset === 0 && records.length > 0) {
-      const r0 = records[0];
-      console.log(`   → Champs disponibles: ${Object.keys(r0).join(', ')}`);
-      console.log(`   → familleavis: "${r0.familleavis}" | familleavis_lib: "${r0.familleavis_lib}"`);
-      // Afficher les valeurs uniques de familleavis dans ce batch
-      const familles = [...new Set(records.map(r => `${r.familleavis}|${r.familleavis_lib}`))];
-      console.log(`   → Familles présentes: ${familles.join(' / ')}`);
-    }
-
-    if (records.length === 0) { continuer = false; break; }
-
-    const toInsert = [];
-    for (const r of records) {
-      const fa    = r.familleavis || '';
-      const faLib = r.familleavis_lib || '';
-
-      // Filtrer uniquement les procédures collectives
-      if (!estProcedureCollective(fa, faLib)) continue;
-
-      const { nom, activite, adresse, ville, cp, dept } = extraireInfos(r);
-
-      // Filtrer uniquement le retail
-      if (!estRetail(activite) && !estRetail(nom)) continue;
-
-      toInsert.push({
-        bodacc_id:      r.id || '',
-        nom,
-        ville,
-        adresse:        adresse || null,
-        code_postal:    cp,
-        departement:    dept,
-        type_procedure: faLib,
-        date_parution:  r.dateparution ? r.dateparution.split('T')[0] : null,
-        activite,
-        est_retail:     true,
-        score_affaire:  scoreAffaire(faLib, activite),
-        url_bodacc:     `https://www.bodacc.fr/pages/annonces-commerciales-detail/?q.id=id:${r.id}`,
-        verifie:        true,
-        source:         'BODACC',
-        actif:          true
-      });
-    }
-
-    console.log(`   → ${toInsert.length} annonces retail procédures collectives`);
-
-    if (toInsert.length > 0) {
-      const { error } = await supabase
-        .from('liquidations')
-        .upsert(toInsert, { onConflict: 'bodacc_id', ignoreDuplicates: true });
-
-      if (error) {
-        console.error('❌ Erreur Supabase:', error.message);
-      } else {
-        totalInsere += toInsert.length;
-        console.log(`   ✅ ${toInsert.length} enregistrements insérés`);
-      }
-    }
-
-    totalIgnore += (records.length - toInsert.length);
-    offset += 100;
-    if (offset >= 500 || records.length < 100) continuer = false;
+    await new Promise(r => setTimeout(r, 500));
   }
 
   console.log(`\n✅ Collecte terminée !`);
+  console.log(`   📰 Articles pertinents : ${totalArticles}`);
   console.log(`   📦 Insertions : ${totalInsere}`);
-  console.log(`   ⏭️  Ignorés : ${totalIgnore}`);
 
   try {
     await supabase.from('meta').upsert({ cle: 'derniere_collecte', valeur: new Date().toISOString() });
