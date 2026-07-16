@@ -127,10 +127,12 @@ async function main() {
     process.exit(1);
   }
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
-    global: { headers: {} },
-    realtime: { transport: ws }
-  });
+  const supabaseHeaders = {
+    'Content-Type': 'application/json',
+    'apikey': SUPABASE_KEY,
+    'Authorization': `Bearer ${SUPABASE_KEY}`,
+    'Prefer': 'resolution=ignore-duplicates'
+  };
 
   let totalArticles = 0;
   let totalInsere   = 0;
@@ -167,15 +169,16 @@ async function main() {
       actif:          true
     }));
 
-    // Insert simple — ignore les doublons via la contrainte UNIQUE sur source_url
-    const { error } = await supabase
-      .from('liquidations')
-      .insert(toInsert)
-      .select();
+    // Insert via API REST Supabase directement
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/liquidations`, {
+      method: 'POST',
+      headers: supabaseHeaders,
+      body: JSON.stringify(toInsert)
+    });
 
-    if (error) {
-      console.error(`   ❌ Erreur Supabase: ${error.message}`);
-      console.error(`   ❌ Détail: ${JSON.stringify(error)}`);
+    if (!res.ok) {
+      const txt = await res.text();
+      console.error(`   ❌ Erreur REST Supabase: ${res.status} — ${txt.slice(0,200)}`);
     } else {
       totalInsere += toInsert.length;
       console.log(`   ✅ ${toInsert.length} insérés`);
@@ -189,7 +192,11 @@ async function main() {
   console.log(`   📦 Insertions : ${totalInsere}`);
 
   try {
-    await supabase.from('meta').upsert({ cle: 'derniere_collecte', valeur: new Date().toISOString() });
+    await fetch(`${SUPABASE_URL}/rest/v1/meta`, {
+      method: 'POST',
+      headers: { ...supabaseHeaders, 'Prefer': 'resolution=merge-duplicates' },
+      body: JSON.stringify({ cle: 'derniere_collecte', valeur: new Date().toISOString() })
+    });
   } catch(e) {}
 }
 
